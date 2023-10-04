@@ -6,3 +6,5 @@ project( ksh
 add_library( ksh INTERFACE )
 target_include_directories( ksh
     INTERFACE include )
+
+add_library ( ksh::ksh ALIAS ksh )
