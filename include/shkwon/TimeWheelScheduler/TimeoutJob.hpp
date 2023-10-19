@@ -1,8 +1,6 @@
 #pragma once
 
-#include <cstdint>
-// #include <functional>
-// #include <memory>
+#include <functional>
 
 namespace ksh
 {
