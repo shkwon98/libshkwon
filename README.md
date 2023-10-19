@@ -1,1 +1,1 @@
-# ksh
+# shkwon c++ utility library
