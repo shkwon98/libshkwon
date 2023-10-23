@@ -112,6 +112,30 @@ public:
     }
 
     /**
+     * Resets the timer with the given ID to expire at the specified time.
+     *
+     * @param id The ID of the timer to reset.
+     * @param when The time at which the timer should expire, in milliseconds since epoch.
+     */
+    void ResetTimerAt(uint32_t id, int64_t when)
+    {
+        std::lock_guard<std::mutex> lock(this->mutex);
+        this->restartTimerInfos[id] = when;
+    }
+
+    /**
+     * Resets the timer with the given ID to expire after the specified delay.
+     *
+     * @param id The ID of the timer to reset.
+     * @param delay The time in milliseconds to wait before the timer expires.
+     */
+    void ResetTimerAfter(uint32_t id, int64_t delay)
+    {
+        auto when = GetNowTimestamp() + delay;
+        this->ResetTimerAt(id, when);
+    }
+
+    /**
      * Cancels a timer with the given ID.
      *
      * @param id The ID of the timer to cancel.
@@ -154,6 +178,15 @@ public:
                     auto slot = std::move(leastTimeWheel->PopCurrentSlot());
                     for (const auto &timer : slot)
                     {
+                        auto it = this->restartTimerInfos.find(timer->GetID());
+                        if (it != this->restartTimerInfos.end())
+                        {
+                            timer->UpdateExpirationTime(it->second);
+                            this->GetGreatestTimeWheel()->AddTimer(timer);
+                            this->restartTimerInfos.erase(it);
+                            continue;
+                        }
+
                         auto id = this->cancelTimerIds.find(timer->GetID());
                         if (id != this->cancelTimerIds.end())
                         {
@@ -222,6 +255,6 @@ private:
 
     std::vector<TimeWheelPtr> timeWheels;
     std::unordered_set<uint32_t> cancelTimerIds;
-
+    std::unordered_map<uint32_t, int64_t> restartTimerInfos;
 };
 } // namespace shkwon

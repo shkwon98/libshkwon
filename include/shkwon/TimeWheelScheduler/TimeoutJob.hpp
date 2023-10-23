@@ -48,9 +48,16 @@ public:
         return this->isRepeated;
     }
 
-    void UpdateExpirationTime()
+    void UpdateExpirationTime(int64_t newWhen = 0)
     {
-        this->when += this->interval;
+        if (newWhen > 0)
+        {
+            this->when = newWhen;
+        }
+        else
+        {
+            this->when += this->interval;
+        }
     }
 
 private:
