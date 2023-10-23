@@ -139,39 +139,44 @@ public:
         {
             while (true)
             {
-                std::this_thread::sleep_for(this->intervalInMillisecond);
+                auto now = std::chrono::system_clock::now();
 
-                std::lock_guard<std::mutex> lock(this->mutex);
-                if (this->stopFlag)
                 {
-                    break;
-                }
+                    std::lock_guard<std::mutex> lock(this->mutex);
 
-                auto leastTimeWheel = this->GetLeastTimeWheel();
-                leastTimeWheel->Increase();
-                auto slot = std::move(leastTimeWheel->PopCurrentSlot());
-                for (const auto &timer : slot)
-                {
-                    auto id = this->cancelTimerIds.find(timer->GetID());
-                    if (id != this->cancelTimerIds.end())
+                    if (this->stopFlag)
                     {
-                        this->cancelTimerIds.erase(id);
-                        continue;
+                        break;
                     }
 
-                    this->threadPool->Push([timer]()
+                    auto leastTimeWheel = this->GetLeastTimeWheel();
+                    leastTimeWheel->Increase();
+                    auto slot = std::move(leastTimeWheel->PopCurrentSlot());
+                    for (const auto &timer : slot)
                     {
-                        timer->Run();
-                    });
+                        auto id = this->cancelTimerIds.find(timer->GetID());
+                        if (id != this->cancelTimerIds.end())
+                        {
+                            this->cancelTimerIds.erase(id);
+                            continue;
+                        }
 
-                    if (timer->IsRepeated())
-                    {
-                        timer->UpdateExpirationTime();
-                        this->GetGreatestTimeWheel()->AddTimer(timer);
+                        this->threadPool->Push([timer]()
+                        {
+                            timer->Run();
+                        });
+
+                        if (timer->IsRepeated())
+                        {
+                            timer->UpdateExpirationTime();
+                            this->GetGreatestTimeWheel()->AddTimer(timer);
+                        }
                     }
                 }
+
+                std::this_thread::sleep_until(now + this->intervalInMillisecond);
             }
-        });
+            });
 
         return true;
     }
