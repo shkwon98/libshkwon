@@ -6,10 +6,10 @@
 #include <unordered_set>
 #include <vector>
 
-#include "TimeWheelScheduler/TimeWheel.hpp"
-#include "ThreadPool/ThreadPool.hpp"
+#include "shkwon/TimeWheelScheduler/TimeWheel.hpp"
+#include "shkwon/ThreadPool/ThreadPool.hpp"
 
-namespace ksh
+namespace shkwon
 {
 class TimeWheelScheduler
 {
@@ -219,4 +219,4 @@ private:
     std::unordered_set<uint32_t> cancelTimerIds;
 
 };
-} // namespace ksh
+} // namespace shkwon

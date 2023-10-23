@@ -8,7 +8,7 @@
 #include <thread>
 #include <vector>
 
-namespace ksh
+namespace shkwon
 {
 class ThreadPool
 {
@@ -87,4 +87,4 @@ inline std::future<typename std::result_of<F(Args...)>::type> ThreadPool::Push(F
     return job_result_future;
 }
 
-}  // namespace ksh
+}  // namespace shkwon

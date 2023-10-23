@@ -2,7 +2,7 @@
 
 #include <functional>
 
-namespace ksh
+namespace shkwon
 {
 typedef std::function<void()> TimerTask;
 
@@ -62,4 +62,4 @@ private:
 };
 
 using TimerPtr = std::shared_ptr<TimeoutJob>;
-} // namespace ksh
+} // namespace shkwon
