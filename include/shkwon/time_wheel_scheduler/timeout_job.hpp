@@ -17,55 +17,56 @@ public:
      * @param interval The interval (in milliseconds) between repeated executions of the timer task.
      * @param task The task to be executed when the timer expires.
      */
-    TimeoutJob(uint32_t id, int64_t when, int64_t interval, const TimerTask& task)
-        : id(id)
-        , when(when)
-        , interval(interval)
-        , isRepeated(interval > 0)
-        , task(task)
-    {}
+    TimeoutJob(uint32_t id, int64_t when, int64_t interval, const TimerTask &task)
+        : id_(id)
+        , when_(when)
+        , interval_(interval)
+        , is_repeated_(interval > 0)
+        , task_(task)
+    {
+    }
 
     void Run(void) const
     {
-        if (this->task)
+        if (task_)
         {
-            this->task();
+            task_();
         }
     }
 
     uint32_t GetID() const
     {
-        return this->id;
+        return id_;
     }
 
     int64_t GetExpirationTime() const
     {
-        return this->when;
+        return when_;
     }
 
     bool IsRepeated() const
     {
-        return this->isRepeated;
+        return is_repeated_;
     }
 
-    void UpdateExpirationTime(int64_t newWhen = 0)
+    void UpdateExpirationTime(int64_t new_when = 0)
     {
-        if (newWhen > 0)
+        if (new_when > 0)
         {
-            this->when = newWhen;
+            when_ = new_when;
         }
         else
         {
-            this->when += this->interval;
+            when_ += interval_;
         }
     }
 
 private:
-    uint32_t id;
-    int64_t when;
-    int64_t interval;
-    bool isRepeated;
-    TimerTask task;
+    uint32_t id_;
+    int64_t when_;
+    int64_t interval_;
+    bool is_repeated_;
+    TimerTask task_;
 };
 
 using TimerPtr = std::shared_ptr<TimeoutJob>;

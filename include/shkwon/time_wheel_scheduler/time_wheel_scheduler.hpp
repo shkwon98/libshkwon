@@ -6,8 +6,8 @@
 #include <unordered_set>
 #include <vector>
 
-#include "shkwon/TimeWheelScheduler/TimeWheel.hpp"
-#include "shkwon/ThreadPool/ThreadPool.hpp"
+#include "shkwon/thread_pool/thread_pool.hpp"
+#include "shkwon/time_wheel_scheduler/time_wheel.hpp"
 
 namespace shkwon
 {
@@ -22,11 +22,11 @@ public:
      *                 equal to 1ms and defaults to 50ms.
      */
     explicit TimeWheelScheduler(uint32_t interval = 50)
-        : stopFlag(false)
-        , timerID(1)
-        , intervalInMillisecond(interval)
+        : stop_flag_(false)
+        , timer_id_(1)
+        , interval_in_millisecond_(interval)
     {
-        if (this->intervalInMillisecond.count() < 1)
+        if (interval_in_millisecond_.count() < 1)
         {
             throw std::invalid_argument("TimeoutJob step must be greater than or equal to 10ms.");
         }
@@ -35,23 +35,23 @@ public:
     /**
      * Appends a new time wheel to the scheduler with the specified number of slots and interval.
      *
-     * @param totalSlotNumber The total number of slots in the time wheel.
+     * @param total_slot_num The total number of slots in the time wheel.
      * @param interval The interval (in milliseconds) between each slot in the time wheel.
      * @param name An optional name for the time wheel.
      */
-    void AppendTimeWheel(uint32_t totalSlotNumber, uint32_t interval, const std::string &name = "")
+    void AppendTimeWheel(uint32_t total_slot_num, uint32_t interval, const std::string &name = "")
     {
-        auto curTimeWheel = std::make_shared<TimeWheel>(totalSlotNumber, interval, name);
-        if (this->timeWheels.empty())
+        auto curr_timewheel = std::make_shared<TimeWheel>(total_slot_num, interval, name);
+        if (timewheels_.empty())
         {
-            this->timeWheels.push_back(curTimeWheel);
+            timewheels_.push_back(curr_timewheel);
             return;
         }
 
-        auto greaterTimeWheel = this->timeWheels.back();
-        greaterTimeWheel->SetLessLevelTimeWheel(curTimeWheel.get());
-        curTimeWheel->SetGreaterLevelTimeWheel(greaterTimeWheel.get());
-        this->timeWheels.push_back(curTimeWheel);
+        auto greater_timewheel = timewheels_.back();
+        greater_timewheel->SetLessLevelTimeWheel(curr_timewheel.get());
+        curr_timewheel->SetGreaterLevelTimeWheel(greater_timewheel.get());
+        timewheels_.push_back(curr_timewheel);
     }
 
     /**
@@ -62,17 +62,17 @@ public:
      *
      * @return The ID of the newly created timer. Return 0 if the timer creation fails.
      */
-    uint32_t CreateTimerAt(int64_t when, const TimerTask& task)
+    uint32_t CreateTimerAt(int64_t when, const TimerTask &task)
     {
-        if (this->timeWheels.empty())
+        if (timewheels_.empty())
         {
             return 0;
         }
 
-        std::lock_guard<std::mutex> lock(this->mutex);
-        this->GetGreatestTimeWheel()->AddTimer(std::make_shared<TimeoutJob>(this->timerID, when, 0, task));
+        std::lock_guard<std::mutex> lock(mutex_);
+        this->GetGreatestTimeWheel()->AddTimer(std::make_shared<TimeoutJob>(timer_id_, when, 0, task));
 
-        return this->timerID++;
+        return timer_id_++;
     }
 
     /**
@@ -83,7 +83,7 @@ public:
      *
      * @return The ID of the newly created timer. Return 0 if the timer creation fails.
      */
-    uint32_t CreateTimerAfter(int64_t delay, const TimerTask& task)
+    uint32_t CreateTimerAfter(int64_t delay, const TimerTask &task)
     {
         auto when = GetNowTimestamp() + delay;
         return this->CreateTimerAt(when, task);
@@ -97,18 +97,18 @@ public:
      *
      * @return The ID of the created timer. Return 0 if the timer creation fails.
      */
-    uint32_t CreateTimerEvery(int64_t interval, const TimerTask& task)
+    uint32_t CreateTimerEvery(int64_t interval, const TimerTask &task)
     {
-        if (this->timeWheels.empty())
+        if (timewheels_.empty())
         {
             return 0;
         }
 
-        std::lock_guard<std::mutex> lock(this->mutex);
+        std::lock_guard<std::mutex> lock(mutex_);
         auto when = GetNowTimestamp() + interval;
-        this->GetGreatestTimeWheel()->AddTimer(std::make_shared<TimeoutJob>(this->timerID, when, interval, task));
+        this->GetGreatestTimeWheel()->AddTimer(std::make_shared<TimeoutJob>(timer_id_, when, interval, task));
 
-        return this->timerID++;
+        return timer_id_++;
     }
 
     /**
@@ -119,8 +119,8 @@ public:
      */
     void ResetTimerAt(uint32_t id, int64_t when)
     {
-        std::lock_guard<std::mutex> lock(this->mutex);
-        this->restartTimerInfos[id] = when;
+        std::lock_guard<std::mutex> lock(mutex_);
+        restart_timer_infos_[id] = when;
     }
 
     /**
@@ -142,8 +142,8 @@ public:
      */
     void CancelTimer(uint32_t id)
     {
-        std::lock_guard<std::mutex> lock(this->mutex);
-        this->cancelTimerIds.insert(id);
+        std::lock_guard<std::mutex> lock(mutex_);
+        canceled_timer_ids_.insert(id);
     }
 
     /**
@@ -153,51 +153,47 @@ public:
      */
     bool Start(void)
     {
-        if (this->timeWheels.empty())
+        if (timewheels_.empty())
         {
             return false;
         }
 
-        this->threadPool = std::make_unique<ThreadPool>(10);
-        this->thread = std::thread([this]()
-        {
+        thread_pool_ = std::make_unique<ThreadPool>(10);
+        thread_ = std::thread([this]() {
             while (true)
             {
                 auto now = std::chrono::system_clock::now();
 
                 {
-                    std::lock_guard<std::mutex> lock(this->mutex);
+                    std::lock_guard<std::mutex> lock(mutex_);
 
-                    if (this->stopFlag)
+                    if (stop_flag_)
                     {
                         break;
                     }
 
-                    auto leastTimeWheel = this->GetLeastTimeWheel();
-                    leastTimeWheel->Increase();
-                    auto slot = std::move(leastTimeWheel->PopCurrentSlot());
+                    auto least_timewheel = this->GetLeastTimeWheel();
+                    least_timewheel->Increase();
+                    auto slot = std::move(least_timewheel->PopCurrentSlot());
                     for (const auto &timer : slot)
                     {
-                        auto it = this->restartTimerInfos.find(timer->GetID());
-                        if (it != this->restartTimerInfos.end())
+                        auto it = restart_timer_infos_.find(timer->GetID());
+                        if (it != restart_timer_infos_.end())
                         {
                             timer->UpdateExpirationTime(it->second);
                             this->GetGreatestTimeWheel()->AddTimer(timer);
-                            this->restartTimerInfos.erase(it);
+                            restart_timer_infos_.erase(it);
                             continue;
                         }
 
-                        auto id = this->cancelTimerIds.find(timer->GetID());
-                        if (id != this->cancelTimerIds.end())
+                        auto id = canceled_timer_ids_.find(timer->GetID());
+                        if (id != canceled_timer_ids_.end())
                         {
-                            this->cancelTimerIds.erase(id);
+                            canceled_timer_ids_.erase(id);
                             continue;
                         }
 
-                        this->threadPool->Push([timer]()
-                        {
-                            timer->Run();
-                        });
+                        thread_pool_->Push([timer]() { timer->Run(); });
 
                         if (timer->IsRepeated())
                         {
@@ -207,9 +203,9 @@ public:
                     }
                 }
 
-                std::this_thread::sleep_until(now + this->intervalInMillisecond);
+                std::this_thread::sleep_until(now + interval_in_millisecond_);
             }
-            });
+        });
 
         return true;
     }
@@ -220,41 +216,41 @@ public:
     void Stop(void)
     {
         {
-            std::lock_guard<std::mutex> lock(this->mutex);
-            this->stopFlag = true;
+            std::lock_guard<std::mutex> lock(mutex_);
+            stop_flag_ = true;
         }
 
-        this->thread.join();
+        thread_.join();
     }
 
 private:
     TimeWheelPtr GetGreatestTimeWheel()
     {
-        if (this->timeWheels.empty())
+        if (timewheels_.empty())
         {
             return TimeWheelPtr();
         }
-        return this->timeWheels.front();
+        return timewheels_.front();
     }
     TimeWheelPtr GetLeastTimeWheel()
     {
-        if (this->timeWheels.empty())
+        if (timewheels_.empty())
         {
             return TimeWheelPtr();
         }
-        return this->timeWheels.back();
+        return timewheels_.back();
     }
 
-    std::mutex mutex;
-    std::thread thread;
-    std::unique_ptr<ThreadPool> threadPool;
+    std::mutex mutex_;
+    std::thread thread_;
+    std::unique_ptr<ThreadPool> thread_pool_;
 
-    bool stopFlag;
-    uint32_t timerID;
-    std::chrono::milliseconds intervalInMillisecond;
+    bool stop_flag_;
+    uint32_t timer_id_;
+    std::chrono::milliseconds interval_in_millisecond_;
 
-    std::vector<TimeWheelPtr> timeWheels;
-    std::unordered_set<uint32_t> cancelTimerIds;
-    std::unordered_map<uint32_t, int64_t> restartTimerInfos;
+    std::vector<TimeWheelPtr> timewheels_;
+    std::unordered_set<uint32_t> canceled_timer_ids_;
+    std::unordered_map<uint32_t, int64_t> restart_timer_infos_;
 };
 } // namespace shkwon
