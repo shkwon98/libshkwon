@@ -3,3 +3,10 @@ BasedOnStyle: Microsoft
 Language: Cpp
 AccessModifierOffset: -4
 BreakConstructorInitializers: BeforeComma
+Cpp11BracedListStyle: false
+AlignAfterOpenBracket: Align
+AlignConsecutiveMacros: true
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignTrailingComments: true
+AlwaysBreakTemplateDeclarations: Yes

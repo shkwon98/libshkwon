@@ -35,7 +35,7 @@ public:
     }
 
     template <class F, class... Args>
-    std::future<typename std::result_of<F(Args...)>::type> Push(F &&f, Args &&... args)
+    std::future<typename std::result_of<F(Args...)>::type> Push(F &&f, Args &&...args)
     {
         if (stop_all_)
         {
