@@ -2,6 +2,8 @@
 
 #include "status.hpp"
 
+namespace shkwon
+{
 template <typename ReturnType>
 struct [[nodiscard]] Result
 {
@@ -54,3 +56,5 @@ struct [[nodiscard]] Result
     {
     }
 };
+
+} // namespace shkwon
