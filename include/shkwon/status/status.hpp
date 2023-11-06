@@ -111,4 +111,13 @@ private:
     std::string message_;
 };
 
+template <typename T>
+struct [[nodiscard]] StatusOr : public std::pair<T, Status>
+{
+    using std::pair<T, Status>::pair;
+    using std::pair<T, Status>::operator=;
+};
+
 } // namespace shkwon
+
+#include "result.hpp"
