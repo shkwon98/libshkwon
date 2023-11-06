@@ -24,36 +24,61 @@ public:
     {
     }
 
+    /**
+     * Adds an option to the command line interface argument parser.
+     *
+     * @param short_option A single character representing the short option.
+     * @param long_option  A string representing the long option.
+     * @param dest         A reference to a string where the value of the option will be stored.
+     * @param usage        A string representing the usage of the option.
+     * @return A reference to the CliParser object.
+     */
     CliParser &AddOption(const char &short_option, const char *long_option, std::string &dest, const std::string &usage)
     {
         short_options_ += short_option;
         short_options_ += ':';
 
-        struct option opt = {long_option, required_argument, nullptr, short_option};
+        struct option opt = { long_option, required_argument, nullptr, short_option };
         long_options_.push_back(opt);
 
         usage_guide_ += usage;
         usage_guide_ += "\n";
 
-        option_map_[short_option] = {opt, &dest, nullptr};
+        option_map_[short_option] = { opt, &dest, nullptr };
 
         return *this;
     }
+
+    /**
+     * Adds an option to the command line interface argument parser.
+     *
+     * @param short_option A single character representing the short option.
+     * @param long_option  A string representing the long option.
+     * @param dest         A reference to a boolean where the value of the option will be stored.
+     * @param usage        A string representing the usage of the option.
+     * @return A reference to the CliParser object.
+     */
     CliParser &AddOption(const char &short_option, const char *long_option, bool &dest, const std::string usage)
     {
         short_options_ += short_option;
 
-        struct option opt = {long_option, no_argument, nullptr, short_option};
+        struct option opt = { long_option, no_argument, nullptr, short_option };
         long_options_.push_back(opt);
 
         usage_guide_ += usage;
         usage_guide_ += "\n";
 
-        option_map_[short_option] = {opt, nullptr, &dest};
+        option_map_[short_option] = { opt, nullptr, &dest };
 
         return *this;
     }
 
+    /**
+     * Parses the command line interface arguments.
+     *
+     * @param argc The number of arguments.
+     * @param argv The arguments.
+     */
     void Parse(int argc, char **argv)
     {
         auto help_flag = false;
