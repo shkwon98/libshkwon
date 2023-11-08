@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdarg>
+#include <cstdio>
 #include <string>
 
 #include "success_condition.hpp"
@@ -13,6 +15,25 @@ public:
         : code_(code)
         , message_(std::move(message))
     {
+    }
+    Status(const std::error_code &code, const char *message, ...)
+        : code_(code)
+    {
+        va_list args;
+        va_start(args, message);
+
+        char *buffer = nullptr;
+        if (vasprintf(&buffer, message, args) != -1)
+        {
+            message_ = std::string(buffer);
+            free(buffer);
+        }
+        else
+        {
+            message_ = "Error formatting message";
+        }
+
+        va_end(args);
     }
     Status() = default;
     ~Status() = default;
