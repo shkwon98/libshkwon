@@ -98,6 +98,29 @@ public:
     }
 
     /**
+     * Extend a ::shkwon::Status with a new message.
+     */
+    ::shkwon::Status Chain(const char *message, ...) const
+    {
+        va_list args;
+        va_start(args, message);
+
+        char *buffer = nullptr;
+        if (vasprintf(&buffer, message, args) != -1)
+        {
+            std::string new_message = std::string(buffer);
+            free(buffer);
+            return Chain(std::move(new_message));
+        }
+        else
+        {
+            return Chain("Error formatting message");
+        }
+
+        va_end(args);
+    }
+
+    /**
      * Transform a ::shkwon::Status into a new code.
      */
     ::shkwon::Status Chain(std::error_code code, std::string message) const
