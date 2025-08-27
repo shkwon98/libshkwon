@@ -59,8 +59,7 @@ public:
      * @param usage        A string representing the usage of the option.
      * @return A reference to the CliParser object.
      */
-    CliParser &AddOption(const char &short_option, const char *long_option, bool &dest,
-                         const std::string usage) noexcept
+    CliParser &AddOption(const char &short_option, const char *long_option, bool &dest, const std::string usage) noexcept
     {
         short_options_ += short_option;
 

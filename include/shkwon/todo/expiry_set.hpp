@@ -4,7 +4,8 @@
 #include <set>
 #include <thread>
 
-template <typename T> class ExpirySet
+template <typename T>
+class ExpirySet
 {
 public:
     ExpirySet(std::chrono::duration<int, std::milli> refresh_interval)

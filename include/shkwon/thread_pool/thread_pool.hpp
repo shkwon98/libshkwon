@@ -43,8 +43,8 @@ public:
         }
 
         using return_type = typename std::result_of<F(Args...)>::type;
-        auto job = std::make_shared<std::packaged_task<return_type()>>(
-            std::bind(std::forward<F>(f), std::forward<Args>(args)...));
+        auto job =
+            std::make_shared<std::packaged_task<return_type()>>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
         std::future<return_type> job_result_future = job->get_future();
         {
             std::lock_guard<std::mutex> lock(mtx_job_q_);
