@@ -1,5 +1,5 @@
 # shkwon C++ Library
-C++ library by Seonghyeon Kwon (shkwon98@hanyang.ac.kr) </br>
+C++ library by Sunghyun Kwon (shkwon098@gmail.com) </br>
 This library is a header-only library
 
 ## Getting started 
